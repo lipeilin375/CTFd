@@ -1,11 +1,6 @@
 {% extends "admin/base.html" %}
 
 {% block stylesheets %}
-<style>
-.CodeMirror {
-	height: 100%;
-}
-</style>
 {% endblock %}
 
 {% block content %}
@@ -24,8 +19,7 @@
 			</div>
 
 			{% set content = page.content if page is defined else "" %}
-			{% set format = page.format if page is defined %}
-			{% with form = Forms.pages.PageEditForm(content=content, format=format) %}
+			{% with form = Forms.pages.PageEditForm(content=content) %}
 			<form id="page-edit" method="POST">
 				<div class="form-group">
 					<div class="col-md-12">
@@ -51,32 +45,22 @@
 
 				<div class="form-group">
 					<div class="col-md-12">
-						<b>{{ form.format.label }}</b>
-						{{ form.format(class="form-control custom-select", placeholder="Route", value=format) }}
-						<small class="text-muted">
-							{{ form.format.description }}
-						</small>
-					</div>
-				</div>
 
-				<div class="form-group">
-					<div class="col-md-12">
-
-						<h3>Content</h3>
-						<small class="text-muted">This is the HTML content of your page</small>
+						<h3>内容</h3>
+						<small class="text-muted">HTML页面内容</small>
 
 						<ul class="nav nav-tabs" role="tablist" id="content-edit">
 							<li class="nav-item" role="presentation" class="active">
 								<a class="nav-link active" href="#content-write" aria-controls="home" role="tab"
-								   data-toggle="tab">Write</a>
+								   data-toggle="tab">编辑</a>
 							</li>
 							<li class="nav-item" role="presentation">
-								<a class="nav-link preview-page" href="#">Preview</a>
+								<a class="nav-link preview-page" href="#">预览</a>
 							</li>
 						</ul>
 
 						<div class="tab-content">
-							<div role="tabpanel" class="tab-pane active" id="content-write" style="height:600px">
+							<div role="tabpanel" class="tab-pane active" id="content-write" style="height:400px">
 								<br>
 
 								<div class="form-inline">
@@ -84,7 +68,7 @@
 										<div class="btn-group">
 											<button type="button" class="btn btn-primary" id="media-button">
 												<i class="fas fa-camera-retro"></i>
-												Media Library
+												媒体库
 											</button>
 										</div>
 									</div>
@@ -112,22 +96,23 @@
 
 								<br>
 
-								<div class="form-group h-100">
+								<div class="form-group">
 									{{ form.content(id="admin-pages-editor", class="d-none") }}
 								</div>
-
-								<div class="form-group float-right pt-3">
-									{{ form.nonce() }}
-									<button class="btn btn-primary" id="save-page">
-										Save
-									</button>
-								</div>
 							</div>
-							<div role="tabpanel" class="tab-pane content" id="content-preview">
+							<div role="tabpanel" class="tab-pane content" id="content-preview" style="height:400px">
 							</div>
 						</div>
 					</div>
 				</div>
+
+				<div class="form-group float-right">
+					{{ form.nonce() }}
+					<button class="btn btn-primary" id="save-page">
+						保存
+					</button>
+				</div>
+
 			</form>
 			{% endwith %}
 		</div>

@@ -2,14 +2,15 @@ import "./main";
 import "bootstrap/js/dist/tab";
 import { ezQuery, ezAlert } from "../ezq";
 import { htmlEntities } from "../utils";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
+import Moment from "moment";
 import $ from "jquery";
 import CTFd from "../CTFd";
 import config from "../config";
-import hljs from "highlight.js";
 
-dayjs.extend(relativeTime);
+const api_func = {
+  teams: x => CTFd.api.get_team_solves({ teamId: x }),
+  users: x => CTFd.api.get_user_solves({ userId: x })
+};
 
 CTFd._internal.challenge = {};
 let challenges = [];
@@ -124,12 +125,6 @@ const displayChal = chal => {
 
     challenge.postRender();
 
-    $("#challenge-window")
-      .find("pre code")
-      .each(function(_idx) {
-        hljs.highlightBlock(this);
-      });
-
     window.location.replace(
       window.location.href.split("#")[0] + `#${chal.name}-${chal.id}`
     );
@@ -227,11 +222,27 @@ function renderSubmissionResponse(response) {
 }
 
 function markSolves() {
-  challenges.map(challenge => {
-    if (challenge.solved_by_me) {
-      const btn = $(`button[value="${challenge.id}"]`);
+  return api_func[CTFd.config.userMode]("me").then(function(response) {
+    const solves = response.data;
+    for (let i = solves.length - 1; i >= 0; i--) {
+      const btn = $('button[value="' + solves[i].challenge_id + '"]');
       btn.addClass("solved-challenge");
       btn.prepend("<i class='fas fa-check corner-button-check'></i>");
+    }
+  });
+}
+
+function loadUserSolves() {
+  if (CTFd.user.id == 0) {
+    return Promise.resolve();
+  }
+
+  return api_func[CTFd.config.userMode]("me").then(function(response) {
+    const solves = response.data;
+
+    for (let i = solves.length - 1; i >= 0; i--) {
+      const chal_id = solves[i].challenge_id;
+      solves.push(chal_id);
     }
   });
 }
@@ -245,7 +256,9 @@ function getSolves(id) {
     for (let i = 0; i < data.length; i++) {
       const id = data[i].account_id;
       const name = data[i].name;
-      const date = dayjs(data[i].date).fromNow();
+      const date = Moment(data[i].date)
+        .local()
+        .fromNow();
       const account_url = data[i].account_url;
       box.append(
         '<tr><td><a href="{0}">{2}</td><td>{3}</td></tr>'.format(
@@ -265,13 +278,10 @@ function loadChals() {
     const $challenges_board = $("#challenges-board");
     challenges = response.data;
 
-    if (window.BETA_sortChallenges) {
-      challenges = window.BETA_sortChallenges(challenges);
-    }
-
     $challenges_board.empty();
 
     for (let i = challenges.length - 1; i >= 0; i--) {
+      challenges[i].solves = 0;
       if ($.inArray(challenges[i].category, categories) == -1) {
         const category = challenges[i].category;
         categories.push(category);
@@ -336,12 +346,15 @@ function loadChals() {
 
     $(".challenge-button").click(function(_event) {
       loadChal(this.value);
+      getSolves(this.value);
     });
   });
 }
 
 function update() {
-  return loadChals().then(markSolves);
+  return loadUserSolves() // Load the user's solved challenge ids
+    .then(loadChals) //  Load the full list of challenges
+    .then(markSolves);
 }
 
 $(() => {
@@ -428,5 +441,3 @@ const loadHint = id => {
     displayUnlock(id);
   });
 };
-
-window.updateChallengeBoard = update;

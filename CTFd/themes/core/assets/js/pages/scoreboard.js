@@ -2,7 +2,7 @@ import "./main";
 import $ from "jquery";
 import CTFd from "../CTFd";
 import echarts from "echarts/dist/echarts-en.common";
-import dayjs from "dayjs";
+import Moment from "moment";
 import { htmlEntities, cumulativeSum, colorHash } from "../utils";
 
 const graph = $("#score-graph");
@@ -90,10 +90,7 @@ const buildGraphData = () => {
           id: "dataZoomX",
           type: "slider",
           xAxisIndex: [0],
-          filterMode: "filter",
-          height: 20,
-          top: 35,
-          fillerColor: "rgba(233, 236, 241, 0.4)"
+          filterMode: "filter"
         }
       ],
       series: []
@@ -104,7 +101,7 @@ const buildGraphData = () => {
       const times = [];
       for (let j = 0; j < places[teams[i]]["solves"].length; j++) {
         team_score.push(places[teams[i]]["solves"][j].value);
-        const date = dayjs(places[teams[i]]["solves"][j].date);
+        const date = Moment(places[teams[i]]["solves"][j].date);
         times.push(date.toDate());
       }
 
@@ -175,5 +172,3 @@ $(() => {
   setInterval(update, 300000); // Update scores every 5 minutes
   createGraph();
 });
-
-window.updateScoreboard = update;

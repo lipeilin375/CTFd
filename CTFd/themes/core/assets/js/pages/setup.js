@@ -1,6 +1,6 @@
 import "./main";
 import $ from "jquery";
-import dayjs from "dayjs";
+import Moment from "moment-timezone";
 import CTFd from "../CTFd";
 
 function switchTab(event) {
@@ -33,10 +33,12 @@ function processDateTime(datetime) {
   return function(_event) {
     let date_picker = $(`#${datetime}-date`);
     let time_picker = $(`#${datetime}-time`);
-    let unix_time = dayjs(
+    let unix_time = Moment(
       `${date_picker.val()} ${time_picker.val()}`,
       "YYYY-MM-DD HH:mm"
-    ).unix();
+    )
+      .utc()
+      .unix();
 
     if (isNaN(unix_time)) {
       $(`#${datetime}-preview`).val("");

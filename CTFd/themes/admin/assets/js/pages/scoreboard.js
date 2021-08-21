@@ -38,16 +38,13 @@ function toggleAccount() {
   });
 }
 
-function toggleSelectedAccounts(selectedAccounts, action) {
+function toggleSelectedAccounts(accountIDs, action) {
   const params = {
     hidden: action === "hidden" ? true : false
   };
   const reqs = [];
-  for (let accId of selectedAccounts.accounts) {
+  for (var accId of accountIDs) {
     reqs.push(api_func[CTFd.config.userMode](accId, params));
-  }
-  for (let accId of selectedAccounts.users) {
-    reqs.push(api_func["users"](accId, params));
   }
   Promise.all(reqs).then(_responses => {
     window.location.reload();
@@ -55,25 +52,9 @@ function toggleSelectedAccounts(selectedAccounts, action) {
 }
 
 function bulkToggleAccounts(_event) {
-  // Get selected account and user IDs but only on the active tab.
-  // Technically this could work for both tabs at the same time but that seems like
-  // bad behavior. We don't want to accidentally unhide a user/team accidentally
-  let accountIDs = $(".tab-pane.active input[data-account-id]:checked").map(
-    function() {
-      return $(this).data("account-id");
-    }
-  );
-
-  let userIDs = $(".tab-pane.active input[data-user-id]:checked").map(
-    function() {
-      return $(this).data("user-id");
-    }
-  );
-
-  let selectedUsers = {
-    accounts: accountIDs,
-    users: userIDs
-  };
+  let accountIDs = $("input[data-account-id]:checked").map(function() {
+    return $(this).data("account-id");
+  });
 
   ezAlert({
     title: "Toggle Visibility",
@@ -93,7 +74,7 @@ function bulkToggleAccounts(_event) {
     success: function() {
       let data = $("#scoreboard-bulk-edit").serializeJSON(true);
       let state = data.visibility;
-      toggleSelectedAccounts(selectedUsers, state);
+      toggleSelectedAccounts(accountIDs, state);
     }
   });
 }

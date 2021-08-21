@@ -120,8 +120,7 @@
 <script>
 import CTFd from "core/CTFd";
 import { default as helpers } from "core/helpers";
-import dayjs from "dayjs";
-import hljs from "highlight.js";
+import Moment from "moment";
 export default {
   props: {
     // These props are passed to the api via query string.
@@ -143,7 +142,9 @@ export default {
   },
   methods: {
     toLocalTime(date) {
-      return dayjs(date).format("MMMM Do, h:mm:ss A");
+      return Moment(date)
+        .local()
+        .format("MMMM Do, h:mm:ss A");
     },
     nextPage: function() {
       this.page++;
@@ -203,11 +204,6 @@ export default {
   },
   created() {
     this.loadComments();
-  },
-  updated() {
-    this.$el.querySelectorAll("pre code").forEach(block => {
-      hljs.highlightBlock(block);
-    });
   }
 };
 </script>

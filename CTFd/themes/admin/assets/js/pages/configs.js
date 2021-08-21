@@ -1,11 +1,8 @@
 import "./main";
 import "core/utils";
 import "bootstrap/js/dist/tab";
-import dayjs from "dayjs";
-import advancedFormat from "dayjs/plugin/advancedFormat";
-import utc from "dayjs/plugin/utc";
-import timezone from "dayjs/plugin/timezone";
-import timezones from "../timezones";
+import Moment from "moment-timezone";
+import moment from "moment-timezone";
 import CTFd from "core/CTFd";
 import { default as helpers } from "core/helpers";
 import $ from "jquery";
@@ -15,20 +12,16 @@ import "codemirror/mode/htmlmixed/htmlmixed.js";
 import Vue from "vue/dist/vue.esm.browser";
 import FieldList from "../components/configs/fields/FieldList.vue";
 
-dayjs.extend(advancedFormat);
-dayjs.extend(utc);
-dayjs.extend(timezone);
-
 function loadTimestamp(place, timestamp) {
   if (typeof timestamp == "string") {
-    timestamp = parseInt(timestamp, 10) * 1000;
+    timestamp = parseInt(timestamp, 10);
   }
-  const d = dayjs(timestamp);
-  $("#" + place + "-month").val(d.month() + 1); // Months are zero indexed (https://day.js.org/docs/en/get-set/month)
-  $("#" + place + "-day").val(d.date());
-  $("#" + place + "-year").val(d.year());
-  $("#" + place + "-hour").val(d.hour());
-  $("#" + place + "-minute").val(d.minute());
+  const m = Moment(timestamp * 1000);
+  $("#" + place + "-month").val(m.month() + 1); // Months are zero indexed (http://momentjs.com/docs/#/get-set/month/)
+  $("#" + place + "-day").val(m.date());
+  $("#" + place + "-year").val(m.year());
+  $("#" + place + "-hour").val(m.hour());
+  $("#" + place + "-minute").val(m.minute());
   loadDateValues(place);
 }
 
@@ -38,21 +31,21 @@ function loadDateValues(place) {
   const year = $("#" + place + "-year").val();
   const hour = $("#" + place + "-hour").val();
   const minute = $("#" + place + "-minute").val();
-  const timezone_string = $("#" + place + "-timezone").val();
+  const timezone = $("#" + place + "-timezone").val();
 
   const utc = convertDateToMoment(month, day, year, hour, minute);
-  if (utc.unix() && month && day && year && hour && minute) {
-    $("#" + place).val(utc.unix());
-    $("#" + place + "-local").val(
-      utc.format("dddd, MMMM Do YYYY, h:mm:ss a z (zzz)")
-    );
-    $("#" + place + "-zonetime").val(
-      utc.tz(timezone_string).format("dddd, MMMM Do YYYY, h:mm:ss a z (zzz)")
-    );
-  } else {
+  if (isNaN(utc.unix())) {
     $("#" + place).val("");
     $("#" + place + "-local").val("");
     $("#" + place + "-zonetime").val("");
+  } else {
+    $("#" + place).val(utc.unix());
+    $("#" + place + "-local").val(
+      utc.local().format("dddd, MMMM Do YYYY, h:mm:ss a zz")
+    );
+    $("#" + place + "-zonetime").val(
+      utc.tz(timezone).format("dddd, MMMM Do YYYY, h:mm:ss a zz")
+    );
   }
 }
 
@@ -89,7 +82,7 @@ function convertDateToMoment(month, day, year, hour, minute) {
     ":" +
     min_str +
     ":00";
-  return dayjs(date_string);
+  return Moment(date_string, Moment.ISO_8601);
 }
 
 function updateConfigs(event) {
@@ -119,17 +112,8 @@ function updateConfigs(event) {
     }
   });
 
-  CTFd.api.patch_config_list({}, params).then(function(_response) {
-    if (_response.success) {
-      window.location.reload();
-    } else {
-      let errors = _response.errors.value.join("\n");
-      ezAlert({
-        title: "Error!",
-        body: errors,
-        button: "Okay"
-      });
-    }
+  CTFd.api.patch_config_list({}, params).then(_response => {
+    window.location.reload();
   });
 }
 
@@ -162,27 +146,6 @@ function uploadLogo(event) {
   });
 }
 
-function switchUserMode(event) {
-  event.preventDefault();
-  if (
-    confirm(
-      "Are you sure you'd like to switch user modes?\n\nAll user submissions, awards, unlocks, and tracking will be deleted!"
-    )
-  ) {
-    let formData = new FormData();
-    formData.append("submissions", true);
-    formData.append("nonce", CTFd.config.csrfNonce);
-    fetch(CTFd.config.urlRoot + "/admin/reset", {
-      method: "POST",
-      credentials: "same-origin",
-      body: formData
-    });
-    // Bind `this` so that we can reuse the updateConfigs function
-    let binded = updateConfigs.bind(this);
-    binded(event);
-  }
-}
-
 function removeLogo() {
   ezQuery({
     title: "Remove logo",
@@ -196,123 +159,6 @@ function removeLogo() {
         .then(_response => {
           window.location.reload();
         });
-    }
-  });
-}
-
-function smallIconUpload(event) {
-  event.preventDefault();
-  let form = event.target;
-  helpers.files.upload(form, {}, function(response) {
-    const f = response.data[0];
-    const params = {
-      value: f.location
-    };
-    CTFd.fetch("/api/v1/configs/ctf_small_icon", {
-      method: "PATCH",
-      body: JSON.stringify(params)
-    })
-      .then(function(response) {
-        return response.json();
-      })
-      .then(function(response) {
-        if (response.success) {
-          window.location.reload();
-        } else {
-          ezAlert({
-            title: "Error!",
-            body: "Icon uploading failed!",
-            button: "Okay"
-          });
-        }
-      });
-  });
-}
-
-function removeSmallIcon() {
-  ezQuery({
-    title: "Remove logo",
-    body: "Are you sure you'd like to remove the small site icon?",
-    success: function() {
-      const params = {
-        value: null
-      };
-      CTFd.api
-        .patch_config({ configKey: "ctf_small_icon" }, params)
-        .then(_response => {
-          window.location.reload();
-        });
-    }
-  });
-}
-
-function importCSV(event) {
-  event.preventDefault();
-  let csv_file = document.getElementById("import-csv-file").files[0];
-  let csv_type = document.getElementById("import-csv-type").value;
-
-  let form_data = new FormData();
-  form_data.append("csv_file", csv_file);
-  form_data.append("csv_type", csv_type);
-  form_data.append("nonce", CTFd.config.csrfNonce);
-
-  let pg = ezProgressBar({
-    width: 0,
-    title: "Upload Progress"
-  });
-
-  $.ajax({
-    url: CTFd.config.urlRoot + "/admin/import/csv",
-    type: "POST",
-    data: form_data,
-    processData: false,
-    contentType: false,
-    statusCode: {
-      500: function(resp) {
-        // Normalize errors
-        let errors = JSON.parse(resp.responseText);
-        let errorText = "";
-        errors.forEach(element => {
-          errorText += `Line ${element[0]}: ${JSON.stringify(element[1])}\n`;
-        });
-
-        // Show errors
-        alert(errorText);
-
-        // Hide progress modal if its there
-        pg = ezProgressBar({
-          target: pg,
-          width: 100
-        });
-        setTimeout(function() {
-          pg.modal("hide");
-        }, 500);
-      }
-    },
-    xhr: function() {
-      let xhr = $.ajaxSettings.xhr();
-      xhr.upload.onprogress = function(e) {
-        if (e.lengthComputable) {
-          let width = (e.loaded / e.total) * 100;
-          pg = ezProgressBar({
-            target: pg,
-            width: width
-          });
-        }
-      };
-      return xhr;
-    },
-    success: function(_data) {
-      pg = ezProgressBar({
-        target: pg,
-        width: 100
-      });
-      setTimeout(function() {
-        pg.modal("hide");
-      }, 500);
-      setTimeout(function() {
-        window.location.reload();
-      }, 700);
     }
   });
 }
@@ -375,9 +221,9 @@ function exportConfig(event) {
 }
 
 function insertTimezones(target) {
-  let current = $("<option>").text(dayjs.tz.guess());
+  let current = $("<option>").text(moment.tz.guess());
   $(target).append(current);
-  let tz_names = timezones;
+  let tz_names = moment.tz.names();
   for (let i = 0; i < tz_names.length; i++) {
     let tz = $("<option>").text(tz_names[i]);
     $(target).append(tz);
@@ -474,17 +320,11 @@ $(() => {
   insertTimezones($("#end-timezone"));
   insertTimezones($("#freeze-timezone"));
 
-  $(".config-section > form:not(.form-upload, .custom-config-form)").submit(
-    updateConfigs
-  );
+  $(".config-section > form:not(.form-upload)").submit(updateConfigs);
   $("#logo-upload").submit(uploadLogo);
-  $("#user-mode-form").submit(switchUserMode);
   $("#remove-logo").click(removeLogo);
-  $("#ctf-small-icon-upload").submit(smallIconUpload);
-  $("#remove-small-icon").click(removeSmallIcon);
   $("#export-button").click(exportConfig);
   $("#import-button").click(importConfig);
-  $("#import-csv-form").submit(importCSV);
   $("#config-color-update").click(function() {
     const hex_code = $("#config-color-picker").val();
     const user_css = theme_header_editor.getValue();

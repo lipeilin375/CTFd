@@ -14,7 +14,7 @@
     <div class="card-body">
       <h3 class="card-title">{{ title }}</h3>
       <blockquote class="blockquote mb-0">
-        <p v-html="this.html"></p>
+        <p v-html="this.content"></p>
         <small class="text-muted">
           <span :data-time="this.date">{{ this.localDate() }}</span>
         </small>
@@ -25,19 +25,19 @@
 
 <script>
 import CTFd from "core/CTFd";
-import dayjs from "dayjs";
-import hljs from "highlight.js";
+import Moment from "moment";
 export default {
   props: {
     id: Number,
     title: String,
     content: String,
-    html: String,
     date: String
   },
   methods: {
     localDate: function() {
-      return dayjs(this.date).format("MMMM Do, h:mm:ss A");
+      return Moment(this.date)
+        .local()
+        .format("MMMM Do, h:mm:ss A");
     },
     deleteNotification: function() {
       if (confirm("Are you sure you want to delete this notification?")) {
@@ -53,11 +53,6 @@ export default {
           });
       }
     }
-  },
-  mounted() {
-    this.$el.querySelectorAll("pre code").forEach(block => {
-      hljs.highlightBlock(block);
-    });
   }
 };
 </script>

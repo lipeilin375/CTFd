@@ -3,7 +3,7 @@
 {% block content %}
 	<div class="jumbotron">
 		<div class="container">
-			<h1>Notifications</h1>
+			<h1>公告</h1>
 		</div>
 	</div>
 	<div class="container">
@@ -75,7 +75,7 @@
 						<div class="card-body">
 							<h3 class="card-title">{{ notification.title }}</h3>
 							<blockquote class="blockquote mb-0">
-								<p>{{ notification.html }}</p>
+								<p>{{ notification.content | safe }}</p>
 								<small class="text-muted"><span data-time="{{ notification.date | isoformat }}"></span></small>
 							</blockquote>
 						</div>
